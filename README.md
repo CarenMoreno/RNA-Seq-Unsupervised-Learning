@@ -16,6 +16,22 @@ To identify patterns and clustering behavior in high-dimensional RNA-seq data.
 - Gene expression data (RNA-seq)
 - Cancer type labels
 
+# Repository structure
+cancer-rnaseq-unsupervised-learning/
+│
+├── data/
+│   ├── sample_gene_expression.csv   (small dataset)
+│   ├── labels.csv
+│
+├── scripts/
+│   └── actividad1_caren.Rmd
+│
+├── results/
+│   └── actividad1_caren.html
+│
+├── README.md
+├── .gitignore
+
 ## Results
 UMAP and t-SNE showed the best cluster separation, revealing biologically meaningful groupings between cancer types.
 
