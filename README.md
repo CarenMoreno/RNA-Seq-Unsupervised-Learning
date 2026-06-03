@@ -25,10 +25,10 @@ cancer-rnaseq-unsupervised-learning/
 │   ├── labels.csv
 │
 ├── scripts/
-│   └── actividad1_caren.Rmd
+│   └── rna_seq_unsupervised_analysis.Rmd
 │
 ├── results/
-│   └── actividad1_caren.html
+│   └── rna_seq_unsupervised_analysis.html
 │
 ├── README.md
 ├── .gitignore
