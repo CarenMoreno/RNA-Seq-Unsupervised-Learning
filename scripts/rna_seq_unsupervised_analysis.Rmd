@@ -1,0 +1,496 @@
+---
+title: "Actividad 1: Aprendizaje No Supervisado sobre Datos de RNA-seq de Cancer"
+author: "Caren Moreno. Estudiante del Máster en Bioinformatica UNIR"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  fig.width = 8,
+  fig.height = 6
+)
+
+knitr::opts_knit$set(root.dir = "C:/Users/Usuario/Downloads/Tarea_Cancer")
+```
+
+---
+
+# 1. Ambiente y librerías de trabajo
+
+## Instalacion y carga de paquetes
+
+```{r librerias}
+# Instalacion de paquetes
+paquetes <- c("ggplot2", "dplyr", "Rtsne", "umap",
+              "factoextra", "cluster", "gridExtra", "RColorBrewer")
+
+for (pkg in paquetes) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg, repos = "https://cran.r-project.org")
+  }
+}
+
+# Carga de librerias
+library(ggplot2)       # Generacion de graficos
+library(dplyr)         # Manipulacion de datos
+library(Rtsne)         # Algoritmo t-SNE
+library(umap)          # Algoritmo UMAP
+library(factoextra)    # Visualizacion de PCA
+library(cluster)       # Calculo del Silhouette Score
+library(gridExtra)     # Organizacion de multiples graficos
+library(RColorBrewer)  # Paletas de colores
+```
+
+**Rol de cada libreria:**
+
+- **ggplot2**: Genera todos los graficos del analisis usando "gramatica de graficos". Permite controlar colores, formas, titulos y temas visuales.
+- **dplyr**: Facilita la manipulacion del data frame (filtrado, seleccion de columnas, transformaciones).
+- **Rtsne**: Implementa el algoritmo t-SNE. Sus argumentos principales son: `dims` (dimensiones de salida, usamos 2), `perplexity` (balance entre estructura local y global, valor tipico 30), `max_iter` (numero de iteraciones hasta convergencia), `pca = TRUE` (inicializacion con PCA para mayor estabilidad).
+- **umap**: Implementa UMAP. Sus argumentos principales son: `n_neighbors` (vecinos considerados para la topologia local), `min_dist` (distancia minima entre puntos proyectados, controla compactacion de clusters), `n_components` (dimensiones de salida), `metric` (metrica de distancia).
+- **factoextra**: Facilita la visualizacion de resultados de PCA calculados con `prcomp()`.
+- **cluster**: Proporciona la funcion `silhouette()` para evaluar cuantitativamente la separacion de clusters.
+- **gridExtra**: Permite organizar multiples graficos en una sola figura con `grid.arrange()`.
+- **RColorBrewer**: Provee paletas de colores predefinidas adecuadas para visualizacion cientifica.
+
+---
+
+# 2. Procesamiento de los datos
+
+```{r verificación}
+getwd()
+list.files()
+```
+
+## Carga de datos
+
+```{r carga-datos}
+# Carga del dataset completo de expresion genica (RNA-seq TCGA)
+data_raw <- read.csv("data_complete.csv", row.names = 1)
+labels   <- read.csv("labels.csv", row.names = 1)
+
+# Informacion basica del dataset
+cat("Filas (muestras):", nrow(data_raw), "\n")
+cat("Columnas (genes):", ncol(data_raw), "\n")
+cat("\nDistribucion de tipos de cancer:\n")
+print(table(labels$Class))
+```
+
+## Deteccion de problemas
+
+```{r exploracion}
+# PROBLEMA 1: Valores faltantes (NA)
+cat("Valores NA encontrados:", sum(is.na(data_raw)), "\n")
+
+# PROBLEMA 2: Genes con varianza cero
+varianzas <- apply(data_raw, 2, var)
+cat("Genes con varianza cero:", sum(varianzas == 0), "\n")
+cat("Total de genes originales:", ncol(data_raw), "\n")
+
+# PROBLEMA 3: Alta dimensionalidad
+cat("Alta dimensionalidad: 801 muestras x", ncol(data_raw), "genes\n")
+```
+
+**Problemas detectados y soluciones aplicadas:**
+
+**Problema 1 - Sin valores NA:** El dataset no presenta valores faltantes, por lo que no requiere imputacion.
+
+**Problema 2 - Genes con varianza cero:** Estos genes tienen exactamente el mismo valor de expresion en todas las muestras. No aportan ninguna informacion discriminatoria y pueden causar errores numericos en algunos algoritmos. **Solucion:** Se eliminan del dataset antes del analisis.
+
+**Problema 3 - Alta dimensionalidad (~20.500 genes):** Trabajar con tantas variables simultaneamente es computacionalmente muy costoso y provoca la maldicion de la dimensionalidad, donde las distancias entre puntos pierden significado. **Solucion:** Se seleccionan los 2.000 genes de mayor varianza, practica estandar en analisis de RNA-seq porque los genes mas variables son los mas informativos biologicamente.
+
+**Problema 4 - Escala heterogenea entre genes:** **Problema 4 - Escala de los datos:**
+Aunque el material indica que los datos se encuentran en la misma escala, se decidió aplicar un escalado z-score. Esto se debe a que, en datos de expresión génica, incluso pequeñas diferencias en varianza pueden influir significativamente en métodos basados en distancia (como t-SNE, UMAP y MDS).
+Por lo tanto, el escalado se utilizó como una estrategia para mejorar la comparabilidad entre genes y evitar sesgos en la distancia euclídea.
+
+**Problema 5 - Desbalance de clases:** BRCA tiene mas muestras que COAD. En aprendizaje no supervisado no se corrige, pero se tiene en cuenta al interpretar los resultados visuales.
+
+## Preprocesamiento
+
+```{r preprocesamiento}
+# SOLUCION 1: Eliminar genes con varianza cero
+data_filtrada <- data_raw[, varianzas > 0]
+cat("Genes tras filtrar varianza cero:", ncol(data_filtrada), "\n")
+
+# SOLUCION 2: Seleccionar los 2000 genes de mayor varianza
+varianzas2 <- apply(data_filtrada, 2, var)
+top_genes  <- order(varianzas2, decreasing = TRUE)[1:2000]
+data_top   <- data_filtrada[, top_genes]
+cat("Genes seleccionados (top varianza):", ncol(data_top), "\n")
+
+# SOLUCION 3: Escalar los datos - z-score por gen
+data_scaled <- scale(data_top)
+
+# Alinear etiquetas con el orden de las muestras
+labels_alineadas <- labels[rownames(data_scaled), , drop = FALSE]
+clases <- factor(labels_alineadas$Class)
+
+cat("\nDimensiones finales para el analisis:", dim(data_scaled), "\n")
+
+# Paleta de colores para los 5 tipos de cancer
+colores <- brewer.pal(5, "Set1")
+names(colores) <- levels(clases)
+cat("Clases y colores asignados:\n")
+print(colores)
+```
+**Respuestas conceptuales**
+
+**¿Por qué eliminar genes con varianza cero?**
+Los genes con varianza cero no aportan información útil porque tienen exactamente el mismo valor en todas las muestras. Esto significa que no ayudan a diferenciar entre tipos de cáncer y pueden incluso generar problemas en algunos algoritmos basados en distancia. Por eso se eliminan antes del análisis.
+
+**¿Por qué seleccionar los genes más variables?**
+En datasets de RNA-seq hay miles de genes, pero no todos son informativos. Los genes con mayor varianza suelen estar más relacionados con diferencias biológicas reales entre muestras. Por eso se seleccionan, para reducir ruido y mejorar la calidad del análisis.
+
+**¿Por qué usar PCA primero?**
+PCA se utiliza como punto de partida porque permite tener una primera idea de la estructura de los datos de forma rápida y fácilmente interpretable. Además, ayuda a comparar luego con métodos no lineales como t-SNE o UMAP.
+
+**Diferencia entre PCA y t-SNE**
+PCA es un método lineal que busca maximizar la varianza de los datos, mientras que t-SNE es no lineal y está diseñado para preservar relaciones locales entre muestras. Por eso t-SNE suele mostrar mejor los clusters en datos complejos como los biológicos.
+
+**¿Por qué UMAP es más eficiente?**
+UMAP logra un buen equilibrio entre preservar relaciones locales y globales, lo que permite interpretar mejor la estructura de los datos. Además, es más rápido y más reproducible que t-SNE, lo que lo hace muy útil en datasets grandes como los de RNA-seq.
+
+**Interpretación biológica**
+Los resultados muestran que los distintos tipos de cáncer tienden a agruparse según su perfil de expresión génica. Esto tiene sentido biológico, ya que cada tipo tumoral presenta patrones moleculares característicos. Por ejemplo, tumores como KIRC suelen separarse claramente del resto, mientras que otros como BRCA y PRAD pueden mostrar cierto solapamiento.
+
+# 3. Metodos de aprendizaje no supervisado
+
+## Justificacion de la seleccion de tecnicas
+
+Se seleccionaron cuatro metodos complementarios: **PCA, t-SNE, UMAP y MDS**.
+
+**Motivo de seleccion:**
+
+- **PCA (Analisis de Componentes Principales)** se incluye como metodo de referencia obligatorio en bioinformatica. Es el punto de partida estandar para datos de expresion genica porque es rapido, completamente interpretable y permite cuantificar exactamente cuanta varianza captura cada componente. Su naturaleza lineal lo hace ideal para comparar con los metodos no lineales.
+
+- **t-SNE** se selecciona porque esta especialmente disenado para visualizar estructuras de alta dimensionalidad en 2D. En el campo de RNA-seq y datos genomicos se ha convertido en estandar para revelar agrupamientos biologicos que los metodos lineales como PCA no pueden mostrar. Captura relaciones no lineales entre muestras.
+
+- **UMAP** se incluye como alternativa moderna y superadora de t-SNE. Ademas de capturar relaciones no lineales, preserva tanto la estructura local (relaciones entre muestras cercanas) como la estructura global (relaciones entre grupos distantes). Es mas rapido y reproducible que t-SNE.
+
+- **MDS (Escalado Multidimensional)** se selecciona como metodo basado en distancias que complementa al PCA. Permite detectar estructuras que el PCA podria no capturar y puede aplicarse con diferentes metricas de distancia, haciendolo flexible para contextos biologicos.
+
+## Ventajas y desventajas de cada tecnica
+
+| Metodo | Ventajas | Desventajas |
+|--------|----------|-------------|
+| **PCA** | Rapido, interpretable, varianza cuantificable, sin hiperparametros complejos | Solo captura relaciones lineales; pierde estructuras no lineales |
+| **t-SNE** | Excelente separacion visual de clusters, captura no linealidades | Lento en datasets grandes, no preserva distancias globales, sensible a la semilla aleatoria |
+| **UMAP** | Rapido, preserva estructura local Y global, reproducible con semilla fija | Mas dificil de interpretar que PCA, sensible a hiperparametros |
+| **MDS** | Preserva distancias entre muestras, flexible con metricas | Costoso computacionalmente, equivalente a PCA con distancia euclidea |
+
+---
+
+## Metodo 1: PCA (Analisis de Componentes Principales)
+
+```{r pca}
+# prcomp() realiza PCA de forma eficiente
+# center = FALSE y scale. = FALSE porque ya escalamos los datos previamente
+set.seed(42)
+pca_result <- prcomp(data_scaled, center = FALSE, scale. = FALSE)
+
+# Calcular varianza explicada por cada componente
+var_explicada <- summary(pca_result)$importance[2, 1:10] * 100
+cat("Varianza explicada por las primeras 10 componentes:\n")
+print(round(var_explicada, 2))
+```
+
+```{r grafico-pca}
+# Preparar data frame para graficar
+pca_df <- data.frame(
+  PC1   = pca_result$x[, 1],
+  PC2   = pca_result$x[, 2],
+  Clase = clases
+)
+
+# Grafico PCA
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Clase, shape = Clase)) +
+  geom_point(alpha = 0.7, size = 2.5) +
+  scale_color_manual(values = colores) +
+  scale_shape_manual(values = c(16, 17, 15, 18, 8)) +
+  labs(
+    title    = "PCA - Proyeccion de datos de RNA-seq de cancer",
+    subtitle = paste0("PC1: ", round(var_explicada[1], 1),
+                      "% varianza | PC2: ", round(var_explicada[2], 1), "% varianza"),
+    x = paste0("PC1 (", round(var_explicada[1], 1), "%)"),
+    y = paste0("PC2 (", round(var_explicada[2], 1), "%)")
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "right",
+        plot.title = element_text(face = "bold"))
+```
+
+**Resultado e interpretacion del PCA:**
+
+La proyeccion sobre PC1 y PC2 muestra una separacion parcial de los tipos de cancer. KIRC (carcinoma renal de celulas claras) tiende a separarse claramente del resto, lo cual tiene pleno sentido biologico: este tipo tumoral presenta un perfil de expresion genica muy caracteristico, dominado por vias de hipoxia, metabolismo lipidico y perdida de funcion del gen VHL. BRCA y PRAD muestran cierto solapamiento, reflejando que comparten algunos patrones de expresion vinculados a regulacion hormonal. El porcentaje de varianza explicada por las dos primeras PCs indica que los datos tienen una estructura de alta dimensionalidad y que la proyeccion lineal captura solo parcialmente, justificando el uso de metodos no lineales como t-SNE y UMAP.
+
+---
+
+## Metodo 2: t-SNE
+
+```{r tsne}
+# Rtsne() implementa t-SNE
+# dims = 2: proyeccion en 2 dimensiones para visualizacion
+# perplexity = 30: balance entre vecindad local y global
+# max_iter = 1000: iteraciones para que el algoritmo converja
+# pca = TRUE: inicializacion con PCA, produce resultados mas estables
+# check_duplicates = FALSE: evita error con datos escalados similares
+set.seed(42)
+tsne_result <- Rtsne(
+  data_scaled,
+  dims             = 2,
+  perplexity       = 30,
+  max_iter         = 1000,
+  check_duplicates = FALSE,
+  verbose          = FALSE,
+  pca              = TRUE,
+  pca_center       = TRUE,
+  pca_scale        = FALSE
+)
+
+# Preparar data frame
+tsne_df <- data.frame(
+  Dim1  = tsne_result$Y[, 1],
+  Dim2  = tsne_result$Y[, 2],
+  Clase = clases
+)
+
+# Grafico t-SNE
+ggplot(tsne_df, aes(x = Dim1, y = Dim2, color = Clase, shape = Clase)) +
+  geom_point(alpha = 0.7, size = 2.5) +
+  scale_color_manual(values = colores) +
+  scale_shape_manual(values = c(16, 17, 15, 18, 8)) +
+  labs(
+    title    = "t-SNE - Proyeccion de datos de RNA-seq de cancer",
+    subtitle = "Perplexity = 30 | Iteraciones = 1000 | Inicializacion PCA",
+    x = "Dimension t-SNE 1",
+    y = "Dimension t-SNE 2"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "right",
+        plot.title = element_text(face = "bold"))
+```
+
+**Resultado e interpretacion del t-SNE:**
+
+t-SNE produce una separacion notablemente mas clara que PCA. Se observan clusters compactos y bien definidos para cada tipo tumoral, con muy poco solapamiento entre grupos. Esto tiene sentido biologico directo: cada tipo de cancer tiene un programa transcripcional distintivo que t-SNE logra capturar al preservar las relaciones no lineales en el espacio de alta dimension. KIRC, COAD y BRCA aparecen especialmente bien separados. LUAD y PRAD pueden mostrar cierta proximidad por compartir caracteristicas de diferenciacion glandular y rutas de proliferacion celular similares.
+
+---
+
+## Metodo 3: UMAP
+
+```{r umap}
+# umap() implementa UMAP
+# n_neighbors = 15: numero de vecinos para construir la topologia local
+# min_dist = 0.1: distancia minima entre puntos en el espacio proyectado
+# n_components = 2: proyeccion en 2 dimensiones
+# metric = "euclidean": distancia euclidea entre muestras
+set.seed(42)
+umap_config              <- umap.defaults
+umap_config$n_neighbors  <- 15
+umap_config$min_dist     <- 0.1
+umap_config$n_components <- 2
+umap_config$metric       <- "euclidean"
+umap_config$random_state <- 42
+
+umap_result <- umap(data_scaled, config = umap_config)
+
+# Preparar data frame
+umap_df <- data.frame(
+  UMAP1 = umap_result$layout[, 1],
+  UMAP2 = umap_result$layout[, 2],
+  Clase = clases
+)
+
+# Grafico UMAP
+ggplot(umap_df, aes(x = UMAP1, y = UMAP2, color = Clase, shape = Clase)) +
+  geom_point(alpha = 0.7, size = 2.5) +
+  scale_color_manual(values = colores) +
+  scale_shape_manual(values = c(16, 17, 15, 18, 8)) +
+  labs(
+    title    = "UMAP - Proyeccion de datos de RNA-seq de cancer",
+    subtitle = "n_neighbors = 15 | min_dist = 0.1 | metrica euclidea",
+    x = "UMAP Dimension 1",
+    y = "UMAP Dimension 2"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "right",
+        plot.title = element_text(face = "bold"))
+```
+
+```{r estabilidad-umap}
+set.seed(123)
+umap_test <- umap(data_scaled, config = umap_config)
+
+cor(umap_result$layout[,1], umap_test$layout[,1])
+```
+
+**Resultado e interpretacion del UMAP:**
+
+UMAP muestra una separacion clara de los cinco tipos de cancer con clusters bien definidos, comparable a t-SNE pero con una ventaja adicional: preserva mejor las relaciones entre grupos. Se puede observar que los adenocarcinomas LUAD y COAD tienden a aparecer mas proximos entre si que con KIRC, lo que refleja una mayor similitud en sus perfiles transcripcionales al compartir origen en epitelio glandular. Esto tiene coherencia biologica directa, ya que ambos comparten rutas de senalizacion epitelial y mecanismos de diferenciacion similares.
+
+## Análisis adicional: estabilidad del modelo
+
+Para evaluar la estabilidad del modelo, se repitió UMAP con una semilla diferente. Se observó que los resultados se mantienen consistentes, esto confirma la robustez de este método.
+
+---
+
+## Metodo 4: MDS (Escalado Multidimensional Clasico)
+
+```{r mds}
+# dist() calcula la matriz de distancias euclideas entre todas las muestras
+# cmdscale() aplica MDS clasico sobre esa matriz
+# k = 2: proyeccion en 2 dimensiones
+# eig = TRUE: devuelve valores propios para calcular varianza explicada
+set.seed(42)
+dist_matrix <- dist(data_scaled, method = "euclidean")
+mds_result  <- cmdscale(dist_matrix, k = 2, eig = TRUE)
+
+# Varianza explicada
+mds_var <- (mds_result$eig / sum(abs(mds_result$eig))) * 100
+cat("Varianza explicada MDS Dimension 1:", round(mds_var[1], 2), "%\n")
+cat("Varianza explicada MDS Dimension 2:", round(mds_var[2], 2), "%\n")
+
+# Preparar data frame
+mds_df <- data.frame(
+  MDS1  = mds_result$points[, 1],
+  MDS2  = mds_result$points[, 2],
+  Clase = clases
+)
+
+# Grafico MDS
+ggplot(mds_df, aes(x = MDS1, y = MDS2, color = Clase, shape = Clase)) +
+  geom_point(alpha = 0.7, size = 2.5) +
+  scale_color_manual(values = colores) +
+  scale_shape_manual(values = c(16, 17, 15, 18, 8)) +
+  labs(
+    title    = "MDS - Proyeccion de datos de RNA-seq de cancer",
+    subtitle = paste0("Dim1: ", round(mds_var[1], 1),
+                      "% | Dim2: ", round(mds_var[2], 1), "% varianza explicada"),
+    x = paste0("MDS Dimension 1 (", round(mds_var[1], 1), "%)"),
+    y = paste0("MDS Dimension 2 (", round(mds_var[2], 1), "%)")
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "right",
+        plot.title = element_text(face = "bold"))
+```
+
+**Resultado e interpretacion del MDS:**
+
+El MDS clasico con distancia euclidea produce resultados muy similares al PCA, lo cual es esperable ya que matematicamente son equivalentes cuando se usa esta metrica. KIRC queda bien separado del resto de los tipos tumorales, mientras que los demas muestran cierto solapamiento en las primeras dos dimensiones. La ventaja del MDS es que puede emplearse con otras metricas de distancia (correlacion de Pearson, distancias genomicas), haciendolo mas flexible en contextos biologicos donde la relacion entre muestras no es exclusivamente lineal.
+
+---
+
+# 4. Comparacion visual de los cuatro metodos
+
+```{r comparacion, fig.width=14, fig.height=10}
+# Funcion auxiliar para generar graficos compactos con la misma estructura
+plot_compact <- function(df, x, y, titulo, subtitulo) {
+  ggplot(df, aes_string(x = x, y = y, color = "Clase", shape = "Clase")) +
+    geom_point(alpha = 0.65, size = 1.8) +
+    scale_color_manual(values = colores) +
+    scale_shape_manual(values = c(16, 17, 15, 18, 8)) +
+    labs(title = titulo, subtitle = subtitulo, x = x, y = y) +
+    theme_minimal(base_size = 10) +
+    theme(legend.position = "bottom",
+          plot.title = element_text(face = "bold", size = 11))
+}
+
+p1 <- plot_compact(pca_df,  "PC1",   "PC2",
+                   "PCA", paste0("PC1: ", round(var_explicada[1],1), "%"))
+p2 <- plot_compact(tsne_df, "Dim1",  "Dim2",
+                   "t-SNE", "Perplexity = 30")
+p3 <- plot_compact(umap_df, "UMAP1", "UMAP2",
+                   "UMAP", "n_neighbors = 15")
+p4 <- plot_compact(mds_df,  "MDS1",  "MDS2",
+                   "MDS", paste0("Dim1: ", round(mds_var[1],1), "%"))
+
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+```
+
+---
+
+# 5. Seleccion del algoritmo mas eficiente
+
+## Evaluacion cuantitativa: Silhouette Score
+
+```{r silhouette}
+# Silhouette Score: mide que tan bien esta asignada cada muestra a su grupo
+# Rango: [-1, 1]
+#   Cercano a 1  = la muestra esta bien asignada a su cluster
+#   Cercano a 0  = la muestra esta en el borde entre dos clusters
+#   Cercano a -1 = la muestra podria pertenecer a otro cluster
+calcular_silhouette <- function(coords, etiquetas) {
+  sil <- silhouette(as.integer(etiquetas), dist(coords))
+  mean(sil[, 3])
+}
+
+sil_pca  <- calcular_silhouette(pca_df[, 1:2],  clases)
+sil_tsne <- calcular_silhouette(tsne_df[, 1:2], clases)
+sil_umap <- calcular_silhouette(umap_df[, 1:2], clases)
+sil_mds  <- calcular_silhouette(mds_df[, 1:2],  clases)
+
+resultados <- data.frame(
+  Metodo            = c("PCA", "t-SNE", "UMAP", "MDS"),
+  Silhouette_Score  = round(c(sil_pca, sil_tsne, sil_umap, sil_mds), 4),
+  Tipo              = c("Lineal", "No lineal", "No lineal", "Lineal"),
+  Velocidad         = c("Muy rapido", "Moderado", "Rapido", "Moderado"),
+  Interpretabilidad = c("Alta", "Baja", "Media", "Alta")
+)
+
+print(resultados)
+```
+
+```{r grafico-silhouette}
+ggplot(resultados, aes(x = reorder(Metodo, Silhouette_Score),
+                       y = Silhouette_Score, fill = Metodo)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  geom_text(aes(label = round(Silhouette_Score, 3)), hjust = -0.2, size = 4) +
+  coord_flip() +
+  ylim(0, max(resultados$Silhouette_Score) * 1.3) +
+  scale_fill_manual(values = c("PCA"   = "#E41A1C", "t-SNE" = "#377EB8",
+                                "UMAP"  = "#4DAF4A", "MDS"   = "#984EA3")) +
+  labs(
+    title    = "Silhouette Score por metodo de reduccion de dimensionalidad",
+    subtitle = "Valores mas altos indican mejor separacion de clusters en 2D",
+    x = "Metodo",
+    y = "Silhouette Score medio"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(plot.title = element_text(face = "bold"))
+```
+
+## Conclusion: metodo mas eficiente
+
+**UMAP es el metodo mas eficiente para este conjunto de datos**, seguido de t-SNE. Esta conclusion se sustenta en los siguientes criterios:
+
+1. **Silhouette Score mas alto:** UMAP y t-SNE obtienen los mejores valores, lo que indica que los cinco tipos de cancer quedan mejor separados en el espacio 2D proyectado en comparacion con PCA y MDS.
+
+2. **Preservacion de estructura completa:** A diferencia de t-SNE, UMAP preserva tanto la estructura local (relaciones entre muestras cercanas) como la global (relaciones entre grupos distantes). Esto es biologicamente valioso porque tanto la similitud entre muestras del mismo tipo tumoral como las diferencias entre tipos distintos son informativas.
+
+3. **Eficiencia computacional:** UMAP es significativamente mas rapido que t-SNE para datasets del mismo tamano, lo cual es relevante al escalar a datos genomicos de mayor dimension.
+
+4. **Reproducibilidad:** Con semilla fija (`random_state = 42`), UMAP produce resultados identicos en cada ejecucion, a diferencia de t-SNE que es mas sensible a la inicializacion aleatoria.
+
+5. **Coherencia biologica:** La proyeccion UMAP muestra que los adenocarcinomas LUAD y COAD se agrupan mas proximamente entre si que respecto a KIRC, lo cual es coherente con su origen epitelial glandular compartido.
+
+PCA sigue siendo valioso como metodo de referencia por su interpretabilidad matematica y la posibilidad de cuantificar la varianza explicada. Sin embargo, para datos de RNA-seq con estructura no lineal compleja como este dataset del TCGA, los metodos no lineales como UMAP capturan de manera mas fiel la biologia subyacente.
+
+---
+
+# Informacion de sesion
+
+```{r session-info}
+# Registro del entorno de trabajo para reproducibilidad
+sessionInfo()
+```
+```{r verificar}
+getwd()
+list.files()
+
+
