@@ -18,7 +18,7 @@ To identify patterns and clustering behavior in high-dimensional RNA-seq data.
 
 # Repository structure
 ```text
-cancer-rnaseq-unsupervised-learning/
+RNA-seq-unsupervised-learning/
 │
 ├── data/
 │   ├── sample_gene_expression.csv   (small dataset)
