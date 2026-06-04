@@ -40,3 +40,5 @@ UMAP and t-SNE showed the best cluster separation, revealing biologically meanin
 ## Author
 Caren Moreno  
 MSc in Bioinformatics (UNIR)
+
+## License
