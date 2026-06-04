@@ -42,3 +42,4 @@ Caren Moreno
 MSc in Bioinformatics (UNIR)
 
 ## License
+License GPL-3.0
