@@ -44,7 +44,7 @@ UMAP and t-SNE showed the best cluster separation, revealing biologically meanin
 [![Dataset](https://img.shields.io/badge/Dataset-TCGA%20RNA--seq-orange)](https://www.cancer.gov/tcga)
 [![Status](https://img.shields.io/badge/Status-Complete-success)](https://github.com/CarenMoreno/RNA-Seq-Unsupervised-Learning)
 
-> **Master's in Bioinformatics — UNIR | Algorithms & Artificial Intelligence**  
+> **Master's in Bioinformatics - UNIR | Algorithms & Artificial Intelligence**  
 > Unsupervised machine learning applied to RNA-seq cancer gene expression data (TCGA)
 
 ---
@@ -80,7 +80,7 @@ Four complementary approaches were implemented and compared:
 
 ## Results
 
-### Figure 1 — PCA: Principal Component Analysis
+### Figure 1 - PCA: Principal Component Analysis
 
 PC1 explains **~20% of variance** and clearly separates KIRC from the remaining cancer types. This is biologically consistent with the distinct transcriptomic signature of renal clear cell carcinoma, driven by VHL loss-of-function and hypoxia pathways.
 
@@ -88,7 +88,7 @@ PC1 explains **~20% of variance** and clearly separates KIRC from the remaining 
 
 ---
 
-### Figure 2 — t-SNE: Non-linear Embedding
+### Figure 2 - t-SNE: Non-linear Embedding
 
 t-SNE reveals compact, well-separated clusters for each cancer type, capturing non-linear relationships that PCA misses. KIRC, COAD, and BRCA are especially well-isolated.
 
@@ -96,7 +96,7 @@ t-SNE reveals compact, well-separated clusters for each cancer type, capturing n
 
 ---
 
-### Figure 3 — UMAP: Uniform Manifold Approximation and Projection
+### Figure 3 - UMAP: Uniform Manifold Approximation and Projection
 
 UMAP achieves the clearest separation of all five cancer types while also preserving global structure. Notably, LUAD and COAD appear proximal — consistent with their shared glandular epithelial origin.
 
@@ -104,7 +104,7 @@ UMAP achieves the clearest separation of all five cancer types while also preser
 
 ---
 
-### Figure 4 — t-SNE Stability Analysis
+### Figure 4 - t-SNE Stability Analysis
 
 Stability assessment across multiple random seeds confirms that the cluster structure identified by t-SNE is reproducible and not an artifact of initialization.
 
@@ -112,7 +112,7 @@ Stability assessment across multiple random seeds confirms that the cluster stru
 
 ---
 
-### Figure 5 — MDS: Multidimensional Scaling
+### Figure 5 - MDS: Multidimensional Scaling
 
 MDS with Euclidean distance produces results equivalent to PCA (mathematically identical when using this metric), confirming the linear structure of the dataset. Dimension 1 explains **20.27%** of variance, Dimension 2 explains **11.77%**.
 
@@ -120,7 +120,7 @@ MDS with Euclidean distance produces results equivalent to PCA (mathematically i
 
 ---
 
-### Figure 6 — Silhouette Score Comparison
+### Figure 6 - Silhouette Score Comparison
 
 Quantitative evaluation using **Silhouette Score** (range −1 to +1, higher = better cluster separation):
 
@@ -247,7 +247,7 @@ install.packages(c("ggplot2", "dplyr", "Rtsne", "umap",
 This analysis was completed as part of the **Algorithms & Artificial Intelligence** course in the Master's program in Bioinformatics at UNIR (Universidad Internacional de La Rioja).
 
 **Author:** Caren Moreno  
-**Program:** Máster Universitario en Bioinformática — UNIR  
+**Program:** Máster Universitario en Bioinformática - UNIR  
 **Year:** 2026  
 
 ---
