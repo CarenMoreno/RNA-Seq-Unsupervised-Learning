@@ -37,7 +37,7 @@ RNA-seq-unsupervised-learning/
 ## Results
 UMAP and t-SNE showed the best cluster separation, revealing biologically meaningful groupings between cancer types.
 
-# RNA-Seq Unsupervised Learning — Cancer Type Classification
+# RNA-Seq Unsupervised Learning - Cancer Type Classification
 
 [![R](https://img.shields.io/badge/Language-R%204.x-276DC3?logo=r&logoColor=white)](https://www.r-project.org/)
 [![Methods](https://img.shields.io/badge/Methods-PCA%20%7C%20t--SNE%20%7C%20UMAP%20%7C%20MDS-brightgreen)](https://github.com/CarenMoreno/RNA-Seq-Unsupervised-Learning)
