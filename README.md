@@ -126,7 +126,7 @@ Quantitative evaluation using **Silhouette Score** (range −1 to +1, higher = b
 
 | Method | Silhouette Score | Type | Speed | Interpretability |
 |--------|-----------------|------|-------|-----------------|
-| **UMAP** | **0.7704** ✅ | Non-linear | Fast | Medium |
+| **UMAP** | **0.7704** | Non-linear | Fast | Medium |
 | **t-SNE** | 0.7024 | Non-linear | Moderate | Low |
 | **PCA** | 0.5547 | Linear | Very fast | High |
 | **MDS** | 0.5547 | Linear | Moderate | High |
