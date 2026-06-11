@@ -218,4 +218,4 @@ This analysis was completed as part of the **Algorithms & Artificial Intelligenc
 *Part of my bioinformatics portfolio. See also: [metagenomic-analysis-qiime2](https://github.com/CarenMoreno/metagenomic-analysis-qiime2) | [RNAseq-obesity-simpsons](https://github.com/CarenMoreno/RNAseq-obesity-simpsons)*
 
 ## License
-License GPL-3.0
+This project is distributed under the GPL-3.0 License
