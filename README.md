@@ -230,21 +230,17 @@ install.packages(c("ggplot2", "dplyr", "Rtsne", "umap",
 
 ---
 
-## About
+## Author
 
 This analysis was completed as part of the **Algorithms & Artificial Intelligence** course in the Master's program in Bioinformatics at UNIR (Universidad Internacional de La Rioja).
 
 **Author:** Caren Moreno  
-**Program:** Máster Universitario en Bioinformática - UNIR  
+**Program:** Máster en Bioinformática - UNIR  
 **Year:** 2026  
 
 ---
 
 *Part of my bioinformatics portfolio. See also: [metagenomic-analysis-qiime2](https://github.com/CarenMoreno/metagenomic-analysis-qiime2) | [RNAseq-obesity-simpsons](https://github.com/CarenMoreno/RNAseq-obesity-simpsons)*
-
-## Author
-Caren Moreno  
-MSc in Bioinformatics (UNIR)
 
 ## License
 License GPL-3.0
