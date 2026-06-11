@@ -1,3 +1,14 @@
+# RNA-Seq Unsupervised Learning
+
+[![R](https://img.shields.io/badge/Language-R%204.x-276DC3?logo=r&logoColor=white)](https://www.r-project.org/)
+[![Methods](https://img.shields.io/badge/Methods-PCA%20%7C%20t--SNE%20%7C%20UMAP%20%7C%20MDS-brightgreen)]()
+[![Dataset](https://img.shields.io/badge/Dataset-TCGA%20RNA--seq-orange)]()
+[![Status](https://img.shields.io/badge/Status-Complete-success)]()
+
+> Master's in Bioinformatics (UNIR)
+>
+> Unsupervised machine learning applied to cancer transcriptomic data.
+
 # RNA-Seq Unsupervised Learning - Cancer Type Classification
 
 [![R](https://img.shields.io/badge/Language-R%204.x-276DC3?logo=r&logoColor=white)](https://www.r-project.org/)
