@@ -45,7 +45,7 @@ RNA-Seq-Unsupervised-Learning/
 │   ├── fig5_mds.png                   # MDS projection
 │   └── fig6_silhouette.png            # Silhouette Score comparison
 │
-└── data/                              # (not included — see Data section below)
+└── data/                              # (not included - see Data section below)
     ├── data_complete.csv              # 801 × 20531 gene expression matrix
     └── labels.csv                     # Sample IDs and cancer type labels
 ```
@@ -84,7 +84,7 @@ t-SNE reveals compact, well-separated clusters for each cancer type, capturing n
 
 ### Figure 3 - UMAP: Uniform Manifold Approximation and Projection
 
-UMAP achieves the clearest separation of all five cancer types while also preserving global structure. Notably, LUAD and COAD appear proximal — consistent with their shared glandular epithelial origin.
+UMAP achieves the clearest separation of all five cancer types while also preserving global structure. Notably, LUAD and COAD appear proximal - consistent with their shared glandular epithelial origin.
 
 ![UMAP projection of TCGA RNA-seq data](images/fig3_umap.png)
 
@@ -143,9 +143,9 @@ Apply dimensionality reduction (PCA / t-SNE / UMAP / MDS)
 
 **Key preprocessing decisions:**
 - **267 zero-variance genes** removed (uninformative, cause numerical errors)
-- **Top 2,000 variable genes** selected — standard in RNA-seq; high-variance genes are most biologically informative
+- **Top 2,000 variable genes** selected - standard in RNA-seq; high-variance genes are most biologically informative
 - **Z-score normalization** applied to correct for different expression ranges across genes
-- **Class imbalance noted** (BRCA ~300 vs COAD ~78 samples) — relevant for result interpretation
+- **Class imbalance noted** (BRCA ~300 vs COAD ~78 samples) - relevant for result interpretation
 
 ---
 
@@ -183,9 +183,9 @@ install.packages(c("ggplot2", "dplyr", "Rtsne", "umap",
 
 ## Key Biological Insights
 
-- **KIRC is the most transcriptomically distinct** cancer type in this cohort — consistent with its unique molecular biology (VHL mutations, hypoxia signaling, lipid metabolism reprogramming)
+- **KIRC is the most transcriptomically distinct** cancer type in this cohort - consistent with its unique molecular biology (VHL mutations, hypoxia signaling, lipid metabolism reprogramming)
 - **LUAD and COAD show transcriptomic proximity** in UMAP space, reflecting their shared glandular epithelial origins despite arising in different organs
-- **Non-linear methods (UMAP, t-SNE) dramatically outperform linear methods** (PCA, MDS) in separating cancer types in 2D — Silhouette Score improvement of ~39% (0.55 → 0.77)
+- **Non-linear methods (UMAP, t-SNE) dramatically outperform linear methods** (PCA, MDS) in separating cancer types in 2D - Silhouette Score improvement of ~39% (0.55 → 0.77)
 - The clean cluster separation achieved **without using labels** demonstrates that RNA-seq profiles contain sufficient information for cancer subtype identification
 
 ---
