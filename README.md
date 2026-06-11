@@ -16,7 +16,6 @@
 [![Dataset](https://img.shields.io/badge/Dataset-TCGA%20RNA--seq-orange)](https://www.cancer.gov/tcga)
 [![Status](https://img.shields.io/badge/Status-Complete-success)](https://github.com/CarenMoreno/RNA-Seq-Unsupervised-Learning)
 
-
 > **Master's in Bioinformatics - UNIR | Algorithms & Artificial Intelligence**  
 > Unsupervised machine learning applied to RNA-seq cancer gene expression data (TCGA)
 
@@ -25,6 +24,11 @@
 ## Overview
 
 This project applies four unsupervised dimensionality reduction techniques to a gene expression dataset from **The Cancer Genome Atlas (TCGA)**, comprising **801 patient samples** across **5 cancer types** and **20,531 genes**. The goal is to explore whether transcriptomic profiles alone can reveal biologically meaningful groupings without using any class labels during analysis.
+
+## Project Overview
+
+![Project Overview](images/workflow_summary.png)
+
 
 ### Cancer Types Analyzed
 
