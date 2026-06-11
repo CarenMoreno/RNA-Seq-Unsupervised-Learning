@@ -14,11 +14,6 @@
 
 This project applies four unsupervised dimensionality reduction techniques to a gene expression dataset from **The Cancer Genome Atlas (TCGA)**, comprising **801 patient samples** across **5 cancer types** and **20,531 genes**. The goal is to explore whether transcriptomic profiles alone can reveal biologically meaningful groupings without using any class labels during analysis.
 
-<p align="center">
-  <img src="images/fig4_tsne_stability.png?raw=true" width="600" alt="t-SNE stability analysis">
-</p>
-
-
 ### Cancer Types Analyzed
 
 | Code | Full Name | Samples |
@@ -28,6 +23,10 @@ This project applies four unsupervised dimensionality reduction techniques to a 
 | COAD | Colon Adenocarcinoma | ~78 |
 | LUAD | Lung Adenocarcinoma | ~141 |
 | PRAD | Prostate Adenocarcinoma | ~136 |
+
+<p align="center">
+  <img src="images/fig4_tsne_stability.png?raw=true" width="600" alt="t-SNE stability analysis">
+</p>
 
 ---
 
